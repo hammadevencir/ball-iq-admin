@@ -1,0 +1,82 @@
+[debug] [2026-02-26T14:40:07.729Z] ----------------------------------------------------------------------
+[debug] [2026-02-26T14:40:07.732Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\hamma\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only storage
+[debug] [2026-02-26T14:40:07.732Z] CLI Version:   14.24.2
+[debug] [2026-02-26T14:40:07.732Z] Platform:      win32
+[debug] [2026-02-26T14:40:07.732Z] Node Version:  v22.15.0
+[debug] [2026-02-26T14:40:07.733Z] Time:          Thu Feb 26 2026 19:40:07 GMT+0500 (Pakistan Standard Time)
+[debug] [2026-02-26T14:40:07.733Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-26T14:40:07.735Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-02-26T14:40:07.985Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-26T14:40:07.986Z] > authorizing via signed-in user (hammad727272@gmail.com)
+[debug] [2026-02-26T14:40:07.986Z] [iam] checking project ball-iq-28ac7 for permissions ["firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]
+[debug] [2026-02-26T14:40:07.987Z] Checked if tokens are valid: false, expires at: 1771620022272
+[debug] [2026-02-26T14:40:07.987Z] Checked if tokens are valid: false, expires at: 1771620022272
+[debug] [2026-02-26T14:40:07.987Z] > refreshing access token with scopes: []
+[debug] [2026-02-26T14:40:07.988Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-02-26T14:40:07.988Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-26T14:40:08.399Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-02-26T14:40:08.399Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-26T14:40:08.406Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/ball-iq-28ac7:testIamPermissions [none]
+[debug] [2026-02-26T14:40:08.406Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/ball-iq-28ac7:testIamPermissions x-goog-quota-user=projects/ball-iq-28ac7
+[debug] [2026-02-26T14:40:08.406Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/ball-iq-28ac7:testIamPermissions {"permissions":["firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-02-26T14:40:08.537Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-02-26T14:40:08.538Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-02-26T14:40:10.057Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/ball-iq-28ac7:testIamPermissions 200
+[debug] [2026-02-26T14:40:10.057Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/ball-iq-28ac7:testIamPermissions {"permissions":["firebase.projects.get","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[info] 
+[info] === Deploying to 'ball-iq-28ac7'...
+[info] 
+[info] i  deploying storage 
+[info] i  storage: ensuring required API firebasestorage.googleapis.com is enabled... 
+[debug] [2026-02-26T14:40:10.060Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:10.060Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:10.060Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/ball-iq-28ac7/services/firebasestorage.googleapis.com [none]
+[debug] [2026-02-26T14:40:10.060Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/ball-iq-28ac7/services/firebasestorage.googleapis.com x-goog-quota-user=projects/ball-iq-28ac7
+[debug] [2026-02-26T14:40:11.877Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/ball-iq-28ac7/services/firebasestorage.googleapis.com 200
+[debug] [2026-02-26T14:40:11.877Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/ball-iq-28ac7/services/firebasestorage.googleapis.com [omitted]
+[info] +  storage: required API firebasestorage.googleapis.com is enabled 
+[debug] [2026-02-26T14:40:11.883Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:11.883Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:11.883Z] >>> [apiv2][query] GET https://firebasestorage.googleapis.com/v1alpha/projects/ball-iq-28ac7/defaultBucket [none]
+[debug] [2026-02-26T14:40:12.842Z] <<< [apiv2][status] GET https://firebasestorage.googleapis.com/v1alpha/projects/ball-iq-28ac7/defaultBucket 200
+[debug] [2026-02-26T14:40:12.842Z] <<< [apiv2][body] GET https://firebasestorage.googleapis.com/v1alpha/projects/ball-iq-28ac7/defaultBucket {"name":"projects/ball-iq-28ac7/defaultBucket","location":"US-CENTRAL1","bucket":{"name":"projects/ball-iq-28ac7/buckets/ball-iq-28ac7.firebasestorage.app"},"storageClass":"REGIONAL"}
+[info] i  firebase.storage: checking storage.rules for compilation errors... 
+[debug] [2026-02-26T14:40:12.843Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:12.843Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:12.843Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7:test [none]
+[debug] [2026-02-26T14:40:12.843Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7:test [omitted]
+[debug] [2026-02-26T14:40:13.595Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7:test 200
+[debug] [2026-02-26T14:40:13.595Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7:test {}
+[info] +  firebase.storage: rules file storage.rules compiled successfully 
+[debug] [2026-02-26T14:40:13.596Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:13.596Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:13.596Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/releases pageSize=10&pageToken=
+[debug] [2026-02-26T14:40:14.399Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/releases 200
+[debug] [2026-02-26T14:40:14.399Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/releases {"releases":[{"name":"projects/ball-iq-28ac7/releases/cloud.firestore","rulesetName":"projects/ball-iq-28ac7/rulesets/234c9d48-a01c-4be3-b48a-864adbd0bc1f","createTime":"2026-02-14T10:18:40.941555Z","updateTime":"2026-02-25T20:00:41.243030Z"},{"name":"projects/ball-iq-28ac7/releases/firebase.storage/ball-iq-28ac7.firebasestorage.app","rulesetName":"projects/ball-iq-28ac7/rulesets/54d739b7-83f0-408e-aab2-771dc5d5221d","createTime":"2026-02-26T14:38:52.611834Z","updateTime":"2026-02-26T14:38:52.611834Z"}]}
+[debug] [2026-02-26T14:40:14.411Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:14.411Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:14.411Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/rulesets/54d739b7-83f0-408e-aab2-771dc5d5221d [none]
+[debug] [2026-02-26T14:40:15.174Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/rulesets/54d739b7-83f0-408e-aab2-771dc5d5221d 200
+[debug] [2026-02-26T14:40:15.174Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/rulesets/54d739b7-83f0-408e-aab2-771dc5d5221d [omitted]
+[info] i  storage: uploading rules storage.rules... 
+[debug] [2026-02-26T14:40:15.176Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:15.176Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:15.176Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/rulesets [none]
+[debug] [2026-02-26T14:40:15.176Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/rulesets [omitted]
+[debug] [2026-02-26T14:40:16.042Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/rulesets 200
+[debug] [2026-02-26T14:40:16.042Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/rulesets {"name":"projects/ball-iq-28ac7/rulesets/73a39a6d-88aa-4a09-857c-642a64e283cb","source":{"files":[{"content":"rules_version = '2';\n\nservice firebase.storage {\n  match /b/{bucket}/o {\n    // Games JSON files - allow authenticated users (admin panel)\n    match /games/{fileName} {\n      allow read, write: if request.auth != null;\n    }\n    // Scheduled replacement files\n    match /scheduledReplacements/{fileName} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}\n","name":"storage.rules"}]},"createTime":"2026-02-26T14:40:15.788207Z","metadata":{"services":["firebase.storage"]}}
+[debug] [2026-02-26T14:40:16.042Z] [rules] created ruleset projects/ball-iq-28ac7/rulesets/73a39a6d-88aa-4a09-857c-642a64e283cb
+[debug] [2026-02-26T14:40:16.042Z] [rules] releasing firebase.storage/ball-iq-28ac7.firebasestorage.app with ruleset projects/ball-iq-28ac7/rulesets/73a39a6d-88aa-4a09-857c-642a64e283cb
+[debug] [2026-02-26T14:40:16.043Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:16.043Z] Checked if tokens are valid: true, expires at: 1772120407399
+[debug] [2026-02-26T14:40:16.043Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/releases/firebase.storage/ball-iq-28ac7.firebasestorage.app [none]
+[debug] [2026-02-26T14:40:16.043Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/releases/firebase.storage/ball-iq-28ac7.firebasestorage.app {"release":{"name":"projects/ball-iq-28ac7/releases/firebase.storage/ball-iq-28ac7.firebasestorage.app","rulesetName":"projects/ball-iq-28ac7/rulesets/73a39a6d-88aa-4a09-857c-642a64e283cb"}}
+[debug] [2026-02-26T14:40:17.050Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/releases/firebase.storage/ball-iq-28ac7.firebasestorage.app 200
+[debug] [2026-02-26T14:40:17.050Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/ball-iq-28ac7/releases/firebase.storage/ball-iq-28ac7.firebasestorage.app {"name":"projects/ball-iq-28ac7/releases/firebase.storage/ball-iq-28ac7.firebasestorage.app","rulesetName":"projects/ball-iq-28ac7/rulesets/73a39a6d-88aa-4a09-857c-642a64e283cb","createTime":"2026-02-26T14:38:52.611834Z","updateTime":"2026-02-26T14:40:16.780552Z"}
+[debug] [2026-02-26T14:40:17.050Z] [rules] updated release projects/ball-iq-28ac7/releases/firebase.storage/ball-iq-28ac7.firebasestorage.app
+[info] +  storage: released rules storage.rules to firebase.storage 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/ball-iq-28ac7/overview
