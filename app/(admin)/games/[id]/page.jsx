@@ -39,6 +39,9 @@ export default function GameDetailsPage() {
   const [error, setError] = useState(null);
   const [showReplaceModal, setShowReplaceModal] = useState(false);
   const [replaceFile, setReplaceFile] = useState(null);
+  const [parsedSheets, setParsedSheets] = useState(null);
+  const [selectedSheetIndex, setSelectedSheetIndex] = useState(0);
+  const [parsing, setParsing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -77,16 +80,19 @@ export default function GameDetailsPage() {
 
   const isUploaded = game?.dataUrl || game?.dataPath || game?.data;
 
-  const parseExcel = (file) => {
+  const parseExcelAllSheets = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: "array" });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          resolve(XLSX.utils.sheet_to_json(worksheet));
+          const sheets = workbook.SheetNames.map((sheetName) => {
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet);
+            return { sheetName, data: json };
+          });
+          resolve(sheets);
         } catch (err) {
           reject(err);
         }
@@ -96,75 +102,111 @@ export default function GameDetailsPage() {
     });
   };
 
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setReplaceFile(file);
+    setParsing(true);
+    setParsedSheets(null);
+    setSelectedSheetIndex(0);
+    try {
+      const sheets = await parseExcelAllSheets(file);
+      if (!sheets.length) {
+        showToast("No sheets found in Excel file.", "error");
+        setReplaceFile(null);
+        return;
+      }
+      setParsedSheets(sheets);
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to parse Excel file.", "error");
+      setReplaceFile(null);
+    } finally {
+      setParsing(false);
+    }
+  };
+
+  const resetReplaceModal = () => {
+    setReplaceFile(null);
+    setParsedSheets(null);
+    setSelectedSheetIndex(0);
+    setShowReplaceModal(false);
+  };
+
+  const applyGameData = async (jsonData) => {
+    const now = Math.floor(Date.now() / 1000);
+
+    if (storage) {
+      let dataPath = game.dataPath;
+      let dataUrl = game.dataUrl;
+
+      if (dataPath) {
+        const storageRef = ref(storage, dataPath);
+        const jsonBlob = new Blob([JSON.stringify(jsonData)], {
+          type: "application/json",
+        });
+        await uploadBytes(storageRef, jsonBlob);
+        dataUrl = await getDownloadURL(storageRef);
+      } else {
+        const safeName = game.name.replace(/[^a-zA-Z0-9-_]/g, "_");
+        dataPath = `games/${Date.now()}-${safeName}.json`;
+        const storageRef = ref(storage, dataPath);
+        const jsonBlob = new Blob([JSON.stringify(jsonData)], {
+          type: "application/json",
+        });
+        await uploadBytes(storageRef, jsonBlob);
+        dataUrl = await getDownloadURL(storageRef);
+      }
+
+      await updateDoc(doc(db, "games", game.id), {
+        dataPath,
+        dataUrl,
+        rowCount: jsonData.length,
+        updatedAt: now,
+        data: deleteField(),
+      });
+
+      setGame({
+        ...game,
+        dataPath,
+        dataUrl,
+        rowCount: jsonData.length,
+        updatedAt: now,
+        data: undefined,
+      });
+    } else {
+      await updateDoc(doc(db, "games", game.id), {
+        data: jsonData,
+        rowCount: jsonData.length,
+        updatedAt: now,
+        dataPath: deleteField(),
+        dataUrl: deleteField(),
+      });
+
+      setGame({
+        ...game,
+        data: jsonData,
+        rowCount: jsonData.length,
+        updatedAt: now,
+        dataPath: undefined,
+        dataUrl: undefined,
+      });
+    }
+  };
+
   const handleReplaceFile = async (e) => {
     e.preventDefault();
-    if (!game || !replaceFile) return;
+    if (!game || !parsedSheets?.length) return;
+
+    const selectedSheet = parsedSheets[selectedSheetIndex];
+    if (!selectedSheet) return;
 
     setUploading(true);
     try {
-      const jsonData = await parseExcel(replaceFile);
-      const now = Math.floor(Date.now() / 1000);
-
-      if (storage) {
-        let dataPath = game.dataPath;
-        let dataUrl = game.dataUrl;
-
-        if (dataPath) {
-          const storageRef = ref(storage, dataPath);
-          const jsonBlob = new Blob([JSON.stringify(jsonData)], {
-            type: "application/json",
-          });
-          await uploadBytes(storageRef, jsonBlob);
-          dataUrl = await getDownloadURL(storageRef);
-        } else {
-          const safeName = game.name.replace(/[^a-zA-Z0-9-_]/g, "_");
-          dataPath = `games/${Date.now()}-${safeName}.json`;
-          const storageRef = ref(storage, dataPath);
-          const jsonBlob = new Blob([JSON.stringify(jsonData)], {
-            type: "application/json",
-          });
-          await uploadBytes(storageRef, jsonBlob);
-          dataUrl = await getDownloadURL(storageRef);
-        }
-
-        await updateDoc(doc(db, "games", game.id), {
-          dataPath,
-          dataUrl,
-          rowCount: jsonData.length,
-          updatedAt: now,
-          data: deleteField(),
-        });
-
-        setGame({
-          ...game,
-          dataPath,
-          dataUrl,
-          rowCount: jsonData.length,
-          updatedAt: now,
-          data: undefined,
-        });
-      } else {
-        await updateDoc(doc(db, "games", game.id), {
-          data: jsonData,
-          rowCount: jsonData.length,
-          updatedAt: now,
-          dataPath: deleteField(),
-          dataUrl: deleteField(),
-        });
-
-        setGame({
-          ...game,
-          data: jsonData,
-          rowCount: jsonData.length,
-          updatedAt: now,
-          dataPath: undefined,
-          dataUrl: undefined,
-        });
-      }
-
+      await applyGameData(selectedSheet.data);
       showToast(`File replaced for "${game.name}"`);
-      setReplaceFile(null);
-      setShowReplaceModal(false);
+      resetReplaceModal();
     } catch (err) {
       console.error(err);
       showToast("Failed to replace file.", "error");
@@ -304,71 +346,144 @@ export default function GameDetailsPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowReplaceModal(false)}
+            onClick={resetReplaceModal}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#111] border border-white/10 rounded-2xl p-6 lg:p-8 w-full max-w-lg shadow-2xl mx-2"
+              className="bg-[#111] border border-white/10 rounded-2xl p-6 lg:p-8 w-full max-w-lg shadow-2xl mx-2 max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-xl font-bold text-white">Replace File</h2>
+                  <h2 className="text-xl font-bold text-white">
+                    {parsedSheets
+                      ? parsedSheets.length > 1
+                        ? "Select Sheet"
+                        : "Replace File"
+                      : "Replace File"}
+                  </h2>
                   <p className="text-gray-500 text-sm mt-1">
                     For: <span className="text-blue-400">{game.name}</span>
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowReplaceModal(false)}
+                  onClick={resetReplaceModal}
                   className="p-2 hover:bg-white/10 rounded-lg text-gray-400"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleReplaceFile} className="space-y-5">
-                <p className="text-sm text-gray-400 bg-white/5 rounded-xl p-4 border border-white/5">
-                  The new file will replace the current data immediately.
-                </p>
+              {!parsedSheets ? (
+                <div className="space-y-5">
+                  <p className="text-sm text-gray-400 bg-white/5 rounded-xl p-4 border border-white/5">
+                    The new file will replace the current data immediately.
+                  </p>
 
-                <div>
-                  <label className="text-sm font-medium text-gray-300 block mb-2">
-                    Replacement Excel File
-                  </label>
-                  <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-blue-500/50 transition-all bg-white/[0.02]">
-                    <FileSpreadsheet className="w-10 h-10 text-gray-600 mb-3" />
-                    <p className="text-sm text-gray-400">
-                      {replaceFile
-                        ? replaceFile.name
-                        : "Click to select replacement file"}
-                    </p>
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      onChange={(e) => setReplaceFile(e.target.files[0])}
-                      className="hidden"
-                      required
-                    />
-                  </label>
+                  <div>
+                    <label className="text-sm font-medium text-gray-300 block mb-2">
+                      Replacement Excel File
+                    </label>
+                    <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-blue-500/50 transition-all bg-white/[0.02]">
+                      <FileSpreadsheet className="w-10 h-10 text-gray-600 mb-3" />
+                      <p className="text-sm text-gray-400">
+                        {parsing
+                          ? "Parsing..."
+                          : replaceFile
+                            ? replaceFile.name
+                            : "Click to select replacement file"}
+                      </p>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        disabled={parsing}
+                      />
+                    </label>
+                    {parsing && (
+                      <div className="flex justify-center mt-3">
+                        <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
-                >
-                  {uploading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
+              ) : (
+                <form onSubmit={handleReplaceFile} className="space-y-5">
+                  {parsedSheets.length > 1 ? (
                     <>
-                      <Upload className="w-5 h-5" />
-                      Replace File
+                      <p className="text-sm text-gray-400">
+                        Found {parsedSheets.length} sheets. Select one to use
+                        for this game:
+                      </p>
+                      <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1">
+                        {parsedSheets.map((sheet, index) => (
+                          <label
+                            key={sheet.sheetName}
+                            className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                              selectedSheetIndex === index
+                                ? "bg-blue-500/10 border-blue-500/30"
+                                : "bg-white/5 border-white/10 hover:border-white/20"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="sheet"
+                              checked={selectedSheetIndex === index}
+                              onChange={() => setSelectedSheetIndex(index)}
+                              className="mt-1"
+                            />
+                            <div>
+                              <p className="font-medium text-white">
+                                {sheet.sheetName}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {sheet.data.length} rows
+                              </p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
                     </>
+                  ) : (
+                    <p className="text-sm text-gray-400 bg-white/5 rounded-xl p-4 border border-white/5">
+                      Using sheet &quot;{parsedSheets[0].sheetName}&quot; (
+                      {parsedSheets[0].data.length} rows). The new data will
+                      replace the current file immediately.
+                    </p>
                   )}
-                </button>
-              </form>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setParsedSheets(null);
+                        setReplaceFile(null);
+                        setSelectedSheetIndex(0);
+                      }}
+                      className="px-4 py-3 rounded-xl border border-white/10 text-gray-400 hover:bg-white/5 transition-all"
+                    >
+                      Change File
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={uploading}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                    >
+                      {uploading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <Upload className="w-5 h-5" />
+                          Replace File
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </motion.div>
         )}
