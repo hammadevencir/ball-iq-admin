@@ -15,7 +15,8 @@ import {
   FileSpreadsheet,
   Trash2,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import { parseExcelAllSheets } from "@/lib/excel";
+import SheetPreview from "@/components/SheetPreview";
 import { db, storage } from "@/lib/firebase";
 import {
   doc,
@@ -80,28 +81,6 @@ export default function GameDetailsPage() {
 
   const isUploaded = game?.dataUrl || game?.dataPath || game?.data;
 
-  const parseExcelAllSheets = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: "array" });
-          const sheets = workbook.SheetNames.map((sheetName) => {
-            const worksheet = workbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(worksheet);
-            return { sheetName, data: json };
-          });
-          resolve(sheets);
-        } catch (err) {
-          reject(err);
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -134,8 +113,11 @@ export default function GameDetailsPage() {
     setShowReplaceModal(false);
   };
 
-  const applyGameData = async (jsonData) => {
+  const applyGameData = async (columns, jsonData) => {
     const now = Math.floor(Date.now() / 1000);
+    // Persist the column schema next to the rows so consumers know the full
+    // dynamic column set even when cells are empty.
+    const payload = { columns, data: jsonData };
 
     if (storage) {
       let dataPath = game.dataPath;
@@ -143,7 +125,7 @@ export default function GameDetailsPage() {
 
       if (dataPath) {
         const storageRef = ref(storage, dataPath);
-        const jsonBlob = new Blob([JSON.stringify(jsonData)], {
+        const jsonBlob = new Blob([JSON.stringify(payload)], {
           type: "application/json",
         });
         await uploadBytes(storageRef, jsonBlob);
@@ -152,7 +134,7 @@ export default function GameDetailsPage() {
         const safeName = game.name.replace(/[^a-zA-Z0-9-_]/g, "_");
         dataPath = `games/${Date.now()}-${safeName}.json`;
         const storageRef = ref(storage, dataPath);
-        const jsonBlob = new Blob([JSON.stringify(jsonData)], {
+        const jsonBlob = new Blob([JSON.stringify(payload)], {
           type: "application/json",
         });
         await uploadBytes(storageRef, jsonBlob);
@@ -162,6 +144,8 @@ export default function GameDetailsPage() {
       await updateDoc(doc(db, "games", game.id), {
         dataPath,
         dataUrl,
+        columns,
+        columnCount: columns.length,
         rowCount: jsonData.length,
         updatedAt: now,
         data: deleteField(),
@@ -171,6 +155,8 @@ export default function GameDetailsPage() {
         ...game,
         dataPath,
         dataUrl,
+        columns,
+        columnCount: columns.length,
         rowCount: jsonData.length,
         updatedAt: now,
         data: undefined,
@@ -178,6 +164,8 @@ export default function GameDetailsPage() {
     } else {
       await updateDoc(doc(db, "games", game.id), {
         data: jsonData,
+        columns,
+        columnCount: columns.length,
         rowCount: jsonData.length,
         updatedAt: now,
         dataPath: deleteField(),
@@ -187,6 +175,8 @@ export default function GameDetailsPage() {
       setGame({
         ...game,
         data: jsonData,
+        columns,
+        columnCount: columns.length,
         rowCount: jsonData.length,
         updatedAt: now,
         dataPath: undefined,
@@ -204,7 +194,7 @@ export default function GameDetailsPage() {
 
     setUploading(true);
     try {
-      await applyGameData(selectedSheet.data);
+      await applyGameData(selectedSheet.columns, selectedSheet.data);
       showToast(`File replaced for "${game.name}"`);
       resetReplaceModal();
     } catch (err) {
@@ -435,24 +425,38 @@ export default function GameDetailsPage() {
                               onChange={() => setSelectedSheetIndex(index)}
                               className="mt-1"
                             />
-                            <div>
+                            <div className="min-w-0 flex-1">
                               <p className="font-medium text-white">
                                 {sheet.sheetName}
                               </p>
                               <p className="text-xs text-gray-500 mt-0.5">
-                                {sheet.data.length} rows
+                                {sheet.data.length} rows •{" "}
+                                {sheet.columns.length} columns
                               </p>
+                              {selectedSheetIndex === index && (
+                                <SheetPreview
+                                  columns={sheet.columns}
+                                  data={sheet.data}
+                                />
+                              )}
                             </div>
                           </label>
                         ))}
                       </div>
                     </>
                   ) : (
-                    <p className="text-sm text-gray-400 bg-white/5 rounded-xl p-4 border border-white/5">
-                      Using sheet &quot;{parsedSheets[0].sheetName}&quot; (
-                      {parsedSheets[0].data.length} rows). The new data will
-                      replace the current file immediately.
-                    </p>
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-400 bg-white/5 rounded-xl p-4 border border-white/5">
+                        Using sheet &quot;{parsedSheets[0].sheetName}&quot; (
+                        {parsedSheets[0].data.length} rows •{" "}
+                        {parsedSheets[0].columns.length} columns). The new data
+                        will replace the current file immediately.
+                      </p>
+                      <SheetPreview
+                        columns={parsedSheets[0].columns}
+                        data={parsedSheets[0].data}
+                      />
+                    </div>
                   )}
 
                   <div className="flex gap-3 pt-2">

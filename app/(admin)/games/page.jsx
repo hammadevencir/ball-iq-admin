@@ -12,7 +12,8 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import { parseExcelAllSheets } from "@/lib/excel";
+import SheetPreview from "@/components/SheetPreview";
 import { db, storage } from "@/lib/firebase";
 import {
   collection,
@@ -56,29 +57,6 @@ export default function GamesPage() {
   const toDate = (ts) =>
     typeof ts === "number" ? new Date(ts * 1000) : new Date(ts);
 
-  // Parse Excel - all sheets into array of { sheetName, data }
-  const parseExcelAllSheets = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: "array" });
-          const sheets = workbook.SheetNames.map((sheetName) => {
-            const worksheet = workbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(worksheet);
-            return { sheetName, data: json };
-          });
-          resolve(sheets);
-        } catch (err) {
-          reject(err);
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
   // Parse Excel when file is selected
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -95,8 +73,9 @@ export default function GamesPage() {
         return;
       }
       setParsedSheets(
-        sheets.map(({ sheetName, data }) => ({
+        sheets.map(({ sheetName, columns, data }) => ({
           sheetName,
+          columns,
           data,
           gameName: sheetName,
         })),
@@ -135,12 +114,15 @@ export default function GamesPage() {
 
     setUploading(true);
     try {
-      for (const { gameName, data } of parsedSheets) {
+      for (const { gameName, columns, data } of parsedSheets) {
         const safeName = gameName.trim().replace(/[^a-zA-Z0-9-_]/g, "_");
         const storagePath = `games/${Date.now()}-${safeName}.json`;
         const storageRef = ref(storage, storagePath);
 
-        const jsonBlob = new Blob([JSON.stringify(data)], {
+        // Store the column schema alongside the rows so consumers know the
+        // full dynamic column set without inferring it from sparse data.
+        const payload = { columns, data };
+        const jsonBlob = new Blob([JSON.stringify(payload)], {
           type: "application/json",
         });
         await uploadBytes(storageRef, jsonBlob);
@@ -151,6 +133,8 @@ export default function GamesPage() {
           name: gameName.trim(),
           dataPath: storagePath,
           dataUrl: downloadUrl,
+          columns,
+          columnCount: columns.length,
           rowCount: data.length,
           createdAt: now,
           updatedAt: now,
@@ -320,7 +304,8 @@ export default function GamesPage() {
                         className="p-4 rounded-xl bg-white/5 border border-white/10"
                       >
                         <label className="text-xs text-gray-500 block mb-2">
-                          Sheet "{sheet.sheetName}" ({sheet.data.length} rows)
+                          Sheet "{sheet.sheetName}" ({sheet.data.length} rows •{" "}
+                          {sheet.columns.length} columns)
                         </label>
                         <input
                           type="text"
@@ -331,6 +316,10 @@ export default function GamesPage() {
                           required
                           placeholder={`Name for ${sheet.sheetName}`}
                           className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                        />
+                        <SheetPreview
+                          columns={sheet.columns}
+                          data={sheet.data}
                         />
                       </div>
                     ))}
