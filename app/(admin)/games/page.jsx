@@ -78,6 +78,7 @@ export default function GamesPage() {
           columns,
           data,
           gameName: sheetName,
+          selected: true,
         })),
       );
     } catch (err) {
@@ -95,6 +96,12 @@ export default function GamesPage() {
     );
   };
 
+  const toggleSheetSelected = (index) => {
+    setParsedSheets((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, selected: !s.selected } : s)),
+    );
+  };
+
   const resetUploadModal = () => {
     setExcelFile(null);
     setParsedSheets(null);
@@ -106,23 +113,27 @@ export default function GamesPage() {
     e.preventDefault();
     if (!parsedSheets?.length || !storage) return;
 
-    const invalid = parsedSheets.filter((s) => !s.gameName?.trim());
+    const selectedSheets = parsedSheets.filter((s) => s.selected);
+    if (!selectedSheets.length) {
+      showToast("Select at least one sheet to add.", "error");
+      return;
+    }
+
+    const invalid = selectedSheets.filter((s) => !s.gameName?.trim());
     if (invalid.length) {
-      showToast("Please name every sheet.", "error");
+      showToast("Please name every selected sheet.", "error");
       return;
     }
 
     setUploading(true);
     try {
-      for (const { gameName, columns, data } of parsedSheets) {
+      for (const { gameName, columns, data } of selectedSheets) {
         const safeName = gameName.trim().replace(/[^a-zA-Z0-9-_]/g, "_");
         const storagePath = `games/${Date.now()}-${safeName}.json`;
         const storageRef = ref(storage, storagePath);
 
-        // Store the column schema alongside the rows so consumers know the
-        // full dynamic column set without inferring it from sparse data.
-        const payload = { columns, data };
-        const jsonBlob = new Blob([JSON.stringify(payload)], {
+        // Store the JSON as a plain array of row objects.
+        const jsonBlob = new Blob([JSON.stringify(data)], {
           type: "application/json",
         });
         await uploadBytes(storageRef, jsonBlob);
@@ -142,9 +153,9 @@ export default function GamesPage() {
       }
 
       showToast(
-        parsedSheets.length > 1
-          ? `${parsedSheets.length} games created!`
-          : `"${parsedSheets[0].gameName}" created successfully!`,
+        selectedSheets.length > 1
+          ? `${selectedSheets.length} games created!`
+          : `"${selectedSheets[0].gameName}" created successfully!`,
       );
       resetUploadModal();
     } catch (err) {
@@ -248,7 +259,11 @@ export default function GamesPage() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-white">
-                  {parsedSheets ? "Name Each Game" : "Upload Excel"}
+                  {parsedSheets
+                    ? parsedSheets.length > 1
+                      ? "Select Sheets"
+                      : "Name Game"
+                    : "Upload Excel"}
                 </h2>
                 <button
                   onClick={resetUploadModal}
@@ -293,36 +308,71 @@ export default function GamesPage() {
                 </div>
               ) : (
                 <form onSubmit={handleCreateGames} className="space-y-5">
-                  <p className="text-sm text-gray-400 mb-4">
-                    Found {parsedSheets.length} sheet
-                    {parsedSheets.length > 1 ? "s" : ""}. Name each game:
-                  </p>
+                  {(() => {
+                    const multi = parsedSheets.length > 1;
+                    const selectedCount = parsedSheets.filter(
+                      (s) => s.selected,
+                    ).length;
+                    return (
+                      <p className="text-sm text-gray-400 mb-4">
+                        Found {parsedSheets.length} sheet
+                        {multi ? "s" : ""}.{" "}
+                        {multi
+                          ? `Select the sheets to add (${selectedCount} selected) and name each game:`
+                          : "Name the game:"}
+                      </p>
+                    );
+                  })()}
                   <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-                    {parsedSheets.map((sheet, index) => (
-                      <div
-                        key={sheet.sheetName}
-                        className="p-4 rounded-xl bg-white/5 border border-white/10"
-                      >
-                        <label className="text-xs text-gray-500 block mb-2">
-                          Sheet "{sheet.sheetName}" ({sheet.data.length} rows •{" "}
-                          {sheet.columns.length} columns)
-                        </label>
-                        <input
-                          type="text"
-                          value={sheet.gameName}
-                          onChange={(e) =>
-                            updateSheetName(index, e.target.value)
-                          }
-                          required
-                          placeholder={`Name for ${sheet.sheetName}`}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                        />
-                        <SheetPreview
-                          columns={sheet.columns}
-                          data={sheet.data}
-                        />
-                      </div>
-                    ))}
+                    {parsedSheets.map((sheet, index) => {
+                      const multi = parsedSheets.length > 1;
+                      const dim = multi && !sheet.selected;
+                      return (
+                        <div
+                          key={sheet.sheetName}
+                          className={`p-4 rounded-xl border transition-all ${
+                            dim
+                              ? "bg-white/[0.02] border-white/5 opacity-60"
+                              : "bg-white/5 border-white/10"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            {multi && (
+                              <input
+                                type="checkbox"
+                                checked={sheet.selected}
+                                onChange={() => toggleSheetSelected(index)}
+                                className="mt-1 w-4 h-4 accent-blue-600 shrink-0 cursor-pointer"
+                                aria-label={`Add sheet ${sheet.sheetName}`}
+                              />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <label className="text-xs text-gray-500 block mb-2">
+                                Sheet "{sheet.sheetName}" ({sheet.data.length}{" "}
+                                rows • {sheet.columns.length} columns)
+                              </label>
+                              <input
+                                type="text"
+                                value={sheet.gameName}
+                                onChange={(e) =>
+                                  updateSheetName(index, e.target.value)
+                                }
+                                required={sheet.selected}
+                                disabled={dim}
+                                placeholder={`Name for ${sheet.sheetName}`}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:cursor-not-allowed"
+                              />
+                              {!dim && (
+                                <SheetPreview
+                                  columns={sheet.columns}
+                                  data={sheet.data}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="flex gap-3 pt-2">
                     <button
@@ -335,21 +385,28 @@ export default function GamesPage() {
                     >
                       Change File
                     </button>
-                    <button
-                      type="submit"
-                      disabled={uploading}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
-                    >
-                      {uploading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <>
-                          <Upload className="w-5 h-5" />
-                          Create {parsedSheets.length} Game
-                          {parsedSheets.length > 1 ? "s" : ""}
-                        </>
-                      )}
-                    </button>
+                    {(() => {
+                      const selectedCount = parsedSheets.filter(
+                        (s) => s.selected,
+                      ).length;
+                      return (
+                        <button
+                          type="submit"
+                          disabled={uploading || selectedCount === 0}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                          {uploading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="w-5 h-5" />
+                              Create {selectedCount} Game
+                              {selectedCount === 1 ? "" : "s"}
+                            </>
+                          )}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </form>
               )}

@@ -115,9 +115,6 @@ export default function GameDetailsPage() {
 
   const applyGameData = async (columns, jsonData) => {
     const now = Math.floor(Date.now() / 1000);
-    // Persist the column schema next to the rows so consumers know the full
-    // dynamic column set even when cells are empty.
-    const payload = { columns, data: jsonData };
 
     if (storage) {
       let dataPath = game.dataPath;
@@ -125,7 +122,8 @@ export default function GameDetailsPage() {
 
       if (dataPath) {
         const storageRef = ref(storage, dataPath);
-        const jsonBlob = new Blob([JSON.stringify(payload)], {
+        // Store the JSON as a plain array of row objects.
+        const jsonBlob = new Blob([JSON.stringify(jsonData)], {
           type: "application/json",
         });
         await uploadBytes(storageRef, jsonBlob);
@@ -134,7 +132,7 @@ export default function GameDetailsPage() {
         const safeName = game.name.replace(/[^a-zA-Z0-9-_]/g, "_");
         dataPath = `games/${Date.now()}-${safeName}.json`;
         const storageRef = ref(storage, dataPath);
-        const jsonBlob = new Blob([JSON.stringify(payload)], {
+        const jsonBlob = new Blob([JSON.stringify(jsonData)], {
           type: "application/json",
         });
         await uploadBytes(storageRef, jsonBlob);
@@ -209,8 +207,14 @@ export default function GameDetailsPage() {
     if (!game || !confirm(`Delete "${game.name}"? This cannot be undone.`))
       return;
     try {
+      // Delete the JSON file from Storage first. A missing file (already
+      // removed) must not block deletion of the game record.
       if (storage && game.dataPath) {
-        await deleteObject(ref(storage, game.dataPath));
+        try {
+          await deleteObject(ref(storage, game.dataPath));
+        } catch (err) {
+          if (err?.code !== "storage/object-not-found") throw err;
+        }
       }
       await deleteDoc(doc(db, "games", game.id));
       showToast(`"${game.name}" deleted.`);
