@@ -27,6 +27,17 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 
+// Sort by the leading number in the game name ("1. Pub Quiz" -> 1,
+// "4.5 Top10 (v2)" -> 4.5); names with no leading number (e.g.
+// "Nationality Image") sort last.
+const getOrderKey = (name) => {
+  const match = /^(\d+(?:\.\d+)?)/.exec(name?.trim() ?? "");
+  return match ? parseFloat(match[1]) : Infinity;
+};
+
+const sortGames = (data) =>
+  [...data].sort((a, b) => getOrderKey(a.name) - getOrderKey(b.name));
+
 export default function GamesPage() {
   const [games, setGames] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -43,7 +54,7 @@ export default function GamesPage() {
     if (!db) return;
     const unsub = onSnapshot(collection(db, "games"), (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setGames(data);
+      setGames(sortGames(data));
     });
     return () => unsub();
   }, []);
