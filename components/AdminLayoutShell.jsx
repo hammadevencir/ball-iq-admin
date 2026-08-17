@@ -10,6 +10,7 @@ import {
   Trophy,
   Bell,
   Search,
+  BarChart3,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,6 +40,7 @@ export default function AdminLayoutShell({ children }) {
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
     { name: "Games", icon: Gamepad2, href: "/games" },
+    { name: "Analytics", icon: BarChart3, href: "/analytics" },
   ];
 
   return (

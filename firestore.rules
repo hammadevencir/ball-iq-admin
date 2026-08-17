@@ -11,5 +11,14 @@ service cloud.firestore {
     match /games/{gameId} {
       allow read, write: if request.auth != null;
     }
+
+    // Analytics collection — one doc per user, with an "events" subcollection
+    match /Analytics/{userId} {
+      allow read, write: if request.auth != null;
+
+      match /events/{eventId} {
+        allow read, write: if request.auth != null;
+      }
+    }
   }
 }
