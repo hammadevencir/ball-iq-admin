@@ -35,8 +35,38 @@ const getOrderKey = (name) => {
   return match ? parseFloat(match[1]) : Infinity;
 };
 
+// Fixed display order for the known game types. Checked in order, so the
+// "upload" patterns exclude their own sub-variant (e.g. Top 10 base vs. Top
+// 10 Dropdown) to land in the right slot.
+const FIXED_GAME_ORDER = [
+  /baller\s*pub\s*quiz/i,
+  /footle/i,
+  /quick\s*fire\s*quiz/i,
+  /group\s*quiz/i,
+  /top\s*10(?!.*dropdown)/i,
+  /top\s*10.*dropdown/i,
+  /higher\s*or\s*lower/i,
+  /football\s*darts(?!.*categor)/i,
+  /football\s*darts.*categor/i,
+];
+
+const getFixedOrderIndex = (name) => {
+  const trimmed = name?.trim() ?? "";
+  const idx = FIXED_GAME_ORDER.findIndex((pattern) => pattern.test(trimmed));
+  return idx === -1 ? Infinity : idx;
+};
+
 const sortGames = (data) =>
-  [...data].sort((a, b) => getOrderKey(a.name) - getOrderKey(b.name));
+  [...data].sort((a, b) => {
+    const fa = getFixedOrderIndex(a.name);
+    const fb = getFixedOrderIndex(b.name);
+    if (fa !== fb) return fa - fb;
+    if (fa !== Infinity) return 0;
+    const ka = getOrderKey(a.name);
+    const kb = getOrderKey(b.name);
+    if (ka !== kb) return ka - kb;
+    return (a.name ?? "").localeCompare(b.name ?? "");
+  });
 
 export default function GamesPage() {
   const [games, setGames] = useState([]);

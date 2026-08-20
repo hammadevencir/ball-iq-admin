@@ -40,7 +40,6 @@ export default function AdminLayoutShell({ children }) {
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
     { name: "Games", icon: Gamepad2, href: "/games" },
-    { name: "Analytics", icon: BarChart3, href: "/analytics" },
   ];
 
   return (
